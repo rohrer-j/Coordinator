@@ -1,1 +1,6 @@
-flask
+numpy >= 1.21
+pillow >= 9.0
+grpcio-tools ~= 1.30
+pytest ~= 5.4
+opencv-python >=4.10
+grpc-interceptor ~= 0.15.4
