@@ -3,14 +3,17 @@ import sys
 import numpy as np
 import os
 import logging
-sys.path.append('/service/generated')
+sys.path.append('../generated')
 import hikrobot_cam_pb2
 import hikrobot_cam_pb2_grpc
 from ClientLoggerInterceptor import ClientRequestLogger
+import time
 
 _logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
-def run():
+
+global stub
+def init():
     # Connect to the gRPC server
     options=[('grpc.max_send_message_length', 10 * 1024 * 1024),  # 10 MB limit for send messages
              ('grpc.max_receive_message_length', 10 * 1024 * 1024)]  # 10 MB limit for receive messages
@@ -25,6 +28,7 @@ def run():
     interceptor=ClientRequestLogger()
     channel=grpc.intercept_channel(channel, interceptor)
                            
+    global stub 
     stub = hikrobot_cam_pb2_grpc.HikRobotCameraServiceStub(channel)
 
     # Connect to the camera
@@ -36,9 +40,12 @@ def run():
     except grpc.RpcError as e:
         _logger.error(f"Failed to connect to camera: {e.details()}", exc_info=True)
         return
+    
+def getImage():
 
     # Request an image
     try:
+        global stub
         image_request = hikrobot_cam_pb2.GetImageRequest()
         image_response = stub.GetImage(image_request)
 
@@ -55,4 +62,7 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    init()
+    while(True):
+        getImage()
+        time.sleep(3)

@@ -1,33 +1,52 @@
 # Use Ubuntu as the base image
-FROM python
+FROM python as base
 
-# create directory
-RUN mkdir /service
+# Set working directory to the root of the project
+WORKDIR /app
 
-# Copy only the requirements file first (this way it will not retrigger pip install if only .py file changes)
-COPY requirements.txt /service/requirements.txt
+# Copy the requirement folder into the project
+COPY requirements.txt /app
 
-WORKDIR /service
-
-#install python packages
+# Install python packages
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r requirements.txt
 
-# copy the source files
-COPY src/ /service/src
-COPY protofiles/ /service/protobufs   
+# protofiles are already needed to build grpc files
+COPY protofiles/ /app/protofiles/
 
-#create folder for generated files
+# Create folder for generated files
 RUN mkdir generated
 
-#create grpc files
-RUN python3 -m grpc_tools.protoc -I /service/protobufs --python_out=./generated \
-           --grpc_python_out=./generated /service/protobufs/hikrobot_cam.proto
+# Create grpc files
+RUN python3 -m grpc_tools.protoc -I protofiles --python_out=./generated \
+           --grpc_python_out=./generated protofiles/hikrobot_cam.proto
 
+# End of base steps
+
+#---------------------------Debug stage-----------------------------------
+FROM base as debug
+
+# Install debugpy (Python debugger for remote debugging)
+RUN python3 -m pip install debugpy
+
+# Keeps Python from generating .pyc files in the container
+ENV PYTHONDONTWRITEBYTECODE 1
+# Turns off buffering for easier container logging
+ENV PYTHONUNBUFFERED 1
+
+# Expose the port for debugging
+EXPOSE 5678
+WORKDIR /app/src
+
+
+#---------------------------Production stage-----------------------------------
+FROM base as production
+
+# Copy the src folder into the container for the production stage
+COPY src/ /app/src
 
 # Clean up to reduce image size
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-
-EXPOSE 50051
-ENTRYPOINT [ "python3", "src/app.py" ]
+WORKDIR /app/src
+ENTRYPOINT [ "python3", "app.py" ]
