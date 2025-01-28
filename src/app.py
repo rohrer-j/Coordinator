@@ -32,7 +32,7 @@ def init():
     stub = hikrobot_cam_pb2_grpc.HikRobotCameraServiceStub(channel)
 
     # Connect to the camera
-    serial_number = "J84088695"  # Replace with the actual serial number of the camera
+    serial_number = "J84088695"
     connect_request = hikrobot_cam_pb2.ConnectRequest(serial_number=serial_number)
     try:
         stub.Connect(connect_request)
